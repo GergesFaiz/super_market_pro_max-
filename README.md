@@ -1,17 +1,43 @@
-# super_market_pro_max
+# Super Market Pro Max
 
-A new Flutter project.
+تطبيق إدارة محلات يعمل **بدون إنترنت**: مبيعات، مشتريات، مخزن، عملاء وموردون، تقارير وأرباح يومية/شهرية، ونسخ احتياطي — بفكرة مشابهة لتطبيقات الكاشير المشهورة، لكن بكود أصلي بالكامل.
 
-## Getting Started
+## المميزات
 
-This project is a starting point for a Flutter application.
+- **لوحة المحل**: مبيعات/مشتريات/أرباح اليوم والشهر، الأكثر مبيعاً، تنبيهات المخزون
+- **المخزن**: منتجات (اسم، باركود، أسعار شراء/بيع، كمية) + بحث + تعديل مخزون + تصنيفات
+- **فواتير بيع**: سلة، خصم، مدفوع/متبقي (آجل/خالص)، ربط بعميل، وتخصم من المخزون تلقائياً
+- **فواتير شراء**: تزود المخزون تلقائياً وتربط بمورد
+- **عملاء وموردون**: أرصدة تتحرك مع كل فاتورة آجلة
+- **نسخ احتياطي**: تصدير كل البيانات JSON واسترجاعها
 
-A few resources to get you started if this is your first Flutter project:
+## التقنيات
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Flutter + Bloc (cubits) + SQLite (`sqflite`) — أوفلاين بالكامل، RTL عربي.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+lib/
+├── core/        # theme, sqlite, models, stats, repository
+└── features/
+    ├── dashboard/  # تقارير اليوم/الشهر
+    ├── inventory/  # منتجات وتصنيفات
+    ├── invoices/   # بيع وشراء
+    ├── parties/    # عملاء وموردون
+    └── backup/     # تصدير/استيراد
+```
+
+## التشغيل
+
+```bash
+flutter pub get
+flutter run
+```
+
+## التستات
+
+```bash
+flutter test
+```
+
+5 تستات: حسابات الأرباح والتقارير (`test/shop_stats_test.dart`) + smoke test للثيم.
+CI على كل push (`.github/workflows/flutter_ci.yml`): `dart analyze` + `flutter test`.
