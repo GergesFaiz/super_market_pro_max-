@@ -6,13 +6,13 @@ import 'core/data/shop_repository.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/repository_scope.dart';
 import 'features/backup/screens/backup_screen.dart';
-import 'features/dashboard/screens/dashboard_screen.dart';
-import 'features/inventory/cubit/inventory_cubit.dart';
+import 'features/dashboard/screens/dashboard_screen.dart';import 'features/inventory/cubit/inventory_cubit.dart';
 import 'features/inventory/screens/inventory_screen.dart';
 import 'features/invoices/cubit/invoices_cubit.dart';
 import 'features/invoices/screens/invoice_list_screen.dart';
 import 'features/parties/cubit/parties_cubit.dart';
 import 'features/parties/screens/parties_screen.dart';
+import 'features/settings/screens/settings_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -127,6 +127,17 @@ class MoreScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const PartiesScreen(kind: 'supplier')),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.store, color: Colors.teal),
+            title: const Text('بيانات المحل واللوجو'),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
           ),
