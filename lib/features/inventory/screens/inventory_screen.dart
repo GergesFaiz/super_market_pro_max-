@@ -51,7 +51,7 @@ class InventoryScreen extends StatelessWidget {
                                   style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text(
                                 'شراء: ${p.buyPrice} | بيع: ${p.sellPrice} | ربح: ${(p.sellPrice - p.buyPrice).toStringAsFixed(2)}\n'
-                                'الكمية: ${p.quantity}${p.barcode.isNotEmpty ? ' | ${p.barcode}' : ''}',
+                                'الكمية: ${p.quantity}${p.barcode.isNotEmpty ? ' | ${p.barcode}' : ''}${p.purchaseUnit.isNotEmpty ? '\nوحدة الشراء: ${p.purchaseUnit} (${p.unitFactor} ${p.unitName}) | تكلفة القطعة: ${p.unitCost.toStringAsFixed(2)}' : ''}',
                               ),
                               isThreeLine: true,
                               trailing: Row(
@@ -110,6 +110,10 @@ class InventoryScreen extends StatelessWidget {
     final buy = TextEditingController(text: product?.buyPrice.toString() ?? '');
     final sell = TextEditingController(text: product?.sellPrice.toString() ?? '');
     final qty = TextEditingController(text: product == null ? '0' : product.quantity.toString());
+    final purchaseUnit = TextEditingController(text: product?.purchaseUnit ?? '');
+    final unitFactor = TextEditingController(
+        text: product == null ? '' : (product.unitFactor == 1 ? '' : product.unitFactor.toString()));
+    final unitName = TextEditingController(text: product?.unitName ?? '');
     String? catId = product?.categoryId;
 
     showDialog(
@@ -135,6 +139,12 @@ class InventoryScreen extends StatelessWidget {
                 TextField(controller: sell, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سعر البيع *')),
                 if (product == null)
                   TextField(controller: qty, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكمية الافتتاحية')),
+                const Divider(),
+                const Text('وحدات متعددة (اختياري)',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                TextField(controller: purchaseUnit, decoration: const InputDecoration(labelText: 'وحدة الشراء (مثال: كرتون)')),
+                TextField(controller: unitFactor, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'عدد القطع داخل الوحدة')),
+                TextField(controller: unitName, decoration: const InputDecoration(labelText: 'اسم القطعة (مثال: قطعة)')),
               ],
             ),
           ),
@@ -157,6 +167,9 @@ class InventoryScreen extends StatelessWidget {
                       buyPrice: b,
                       sellPrice: s,
                       quantity: double.tryParse(qty.text) ?? 0,
+                      purchaseUnit: purchaseUnit.text.trim(),
+                      unitFactor: double.tryParse(unitFactor.text) ?? 1,
+                      unitName: unitName.text.trim(),
                     );
                 Navigator.pop(ctx);
               },

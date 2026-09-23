@@ -61,8 +61,12 @@ class InventoryCubit extends Cubit<InventoryState> {
     required double buyPrice,
     required double sellPrice,
     double quantity = 0,
+    String purchaseUnit = '',
+    double unitFactor = 1,
+    String unitName = '',
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    final factor = unitFactor <= 0 ? 1.0 : unitFactor;
     if (id == null) {
       await _repo.upsertProduct(Product(
         id: _uuid.v4(),
@@ -73,11 +77,14 @@ class InventoryCubit extends Cubit<InventoryState> {
         sellPrice: sellPrice,
         quantity: quantity,
         createdAt: now,
+        purchaseUnit: purchaseUnit,
+        unitFactor: factor,
+        unitName: unitName,
       ));
     } else {
       final existing =
           state.products.where((p) => p.id == id).toList(growable: false);
-      final oldQty = existing.isEmpty ? quantity : existing.first.quantity;
+      final old = existing.isEmpty ? null : existing.first;
       await _repo.upsertProduct(Product(
         id: id,
         name: name,
@@ -85,8 +92,11 @@ class InventoryCubit extends Cubit<InventoryState> {
         categoryId: categoryId,
         buyPrice: buyPrice,
         sellPrice: sellPrice,
-        quantity: oldQty,
-        createdAt: now,
+        quantity: old?.quantity ?? quantity,
+        createdAt: old?.createdAt ?? now,
+        purchaseUnit: purchaseUnit,
+        unitFactor: factor,
+        unitName: unitName,
       ));
     }
     await load();
@@ -103,6 +113,9 @@ class InventoryCubit extends Cubit<InventoryState> {
       sellPrice: p.sellPrice,
       quantity: (p.quantity + delta).clamp(0, 1e9).toDouble(),
       createdAt: p.createdAt,
+      purchaseUnit: p.purchaseUnit,
+      unitFactor: p.unitFactor,
+      unitName: p.unitName,
     ));
     await load();
   }

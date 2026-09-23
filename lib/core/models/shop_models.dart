@@ -19,6 +19,14 @@ class Product {
   final double quantity;
   final int createdAt;
 
+  /// Multi-unit support (e.g. buy by carton, sell by piece):
+  /// [purchaseUnit] like 'كرتون', [unitFactor] pieces per purchase unit,
+  /// [unitName] like 'قطعة'. When [unitFactor] > 1 the effective
+  /// cost per piece is buyPrice / factor.
+  final String purchaseUnit;
+  final double unitFactor;
+  final String unitName;
+
   const Product({
     required this.id,
     required this.name,
@@ -28,9 +36,15 @@ class Product {
     required this.sellPrice,
     this.quantity = 0,
     required this.createdAt,
+    this.purchaseUnit = '',
+    this.unitFactor = 1,
+    this.unitName = '',
   });
 
   double get profitPerUnit => sellPrice - buyPrice;
+
+  /// Cost of one selling unit (auto: purchase price / factor).
+  double get unitCost => unitFactor > 0 ? buyPrice / unitFactor : buyPrice;
 
   Map<String, Object?> toMap() => {
         'id': id,
@@ -41,6 +55,9 @@ class Product {
         'sell_price': sellPrice,
         'quantity': quantity,
         'created_at': createdAt,
+        'purchase_unit': purchaseUnit,
+        'unit_factor': unitFactor,
+        'unit_name': unitName,
       };
 
   factory Product.fromMap(Map<String, Object?> m) => Product(
@@ -52,6 +69,9 @@ class Product {
         sellPrice: (m['sell_price'] as num).toDouble(),
         quantity: (m['quantity'] as num).toDouble(),
         createdAt: m['created_at']! as int,
+        purchaseUnit: (m['purchase_unit'] as String?) ?? '',
+        unitFactor: ((m['unit_factor'] as num?) ?? 1).toDouble(),
+        unitName: (m['unit_name'] as String?) ?? '',
       );
 }
 
