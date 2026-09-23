@@ -179,8 +179,7 @@ class Invoice {
       );
 }
 
-class InvoiceItem {
-  final String id;
+class InvoiceItem {  final String id;
   final String invoiceId;
   final String? productId;
   final String productName;
@@ -219,5 +218,38 @@ class InvoiceItem {
         qty: (m['qty'] as num).toDouble(),
         buyPrice: (m['buy_price'] as num).toDouble(),
         sellPrice: (m['sell_price'] as num).toDouble(),
+      );
+}
+
+/// Daily shop expense (rent, salaries, utilities...) - reduces net profit.
+class Expense {
+  final String id;
+  final String title;
+  final double amount;
+  final int date;
+  final String notes;
+
+  const Expense({
+    required this.id,
+    required this.title,
+    required this.amount,
+    required this.date,
+    this.notes = '',
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'title': title,
+        'amount': amount,
+        'date': date,
+        'notes': notes,
+      };
+
+  factory Expense.fromMap(Map<String, Object?> m) => Expense(
+        id: m['id']! as String,
+        title: m['title']! as String,
+        amount: (m['amount'] as num).toDouble(),
+        date: m['date']! as int,
+        notes: (m['notes'] as String?) ?? '',
       );
 }

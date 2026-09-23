@@ -18,9 +18,9 @@ class AppDatabase {
     final dir = await getDatabasesPath();
     return openDatabase(
       join(dir, 'super_market_pro_max.db'),
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
-        await _createV2(db);
+        await _createV3(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -31,11 +31,21 @@ class AppDatabase {
           await db.execute(
               'ALTER TABLE products ADD COLUMN unit_name TEXT DEFAULT \'\'');
         }
+        if (oldVersion < 3) {
+          await db.execute('''
+          CREATE TABLE expenses(
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            amount REAL NOT NULL,
+            date INTEGER NOT NULL,
+            notes TEXT
+          )''');
+        }
       },
     );
   }
 
-  Future<void> _createV2(Database db) async {
+  Future<void> _createV3(Database db) async {
     await db.execute('''
           CREATE TABLE categories(
             id TEXT PRIMARY KEY,
@@ -83,6 +93,14 @@ class AppDatabase {
             qty REAL NOT NULL,
             buy_price REAL NOT NULL,
             sell_price REAL NOT NULL
+          )''');
+        await db.execute('''
+          CREATE TABLE expenses(
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            amount REAL NOT NULL,
+            date INTEGER NOT NULL,
+            notes TEXT
           )''');
   }
 

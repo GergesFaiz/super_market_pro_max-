@@ -18,6 +18,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ShopStats _month = ShopStats.empty;
   List<MapEntry<String, double>> _top = [];
   List<Product> _low = [];
+  double _todayExpenses = 0;
+  double _monthExpenses = 0;
   bool _loading = true;
 
   int _startOfDay() {
@@ -38,11 +40,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final monthInv = await repo.getInvoicesInRange(monthStart, now + 1);
     final dayItems = await repo.getSaleItemsInRange(dayStart, now + 1);
     final monthItems = await repo.getSaleItemsInRange(monthStart, now + 1);
+    final dayExp = await repo.getExpensesInRange(dayStart, now + 1);
+    final monthExp = await repo.getExpensesInRange(monthStart, now + 1);
     final low = await repo.lowStock(5);
     if (!mounted) return;
     setState(() {
       _today = computeStats(invoices: dayInv, saleItems: dayItems, fromMillis: dayStart, toMillis: now + 1);
       _month = computeStats(invoices: monthInv, saleItems: monthItems, fromMillis: monthStart, toMillis: now + 1);
+      _todayExpenses = dayExp.fold(0.0, (s, e) => s + e.amount);
+      _monthExpenses = monthExp.fold(0.0, (s, e) => s + e.amount);
       _top = topSelling(monthItems);
       _low = low;
       _loading = false;
@@ -67,13 +73,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _section('اليوم', [
                   _tile('مبيعات اليوم', _today.salesTotal, Colors.green, Icons.point_of_sale),
-                  _tile('مشتريات اليوم', _today.purchasesTotal, Colors.orange, Icons.shopping_bag),
                   _tile('ربح اليوم', _today.profit, Colors.blue, Icons.trending_up),
+                  _tile('الصافي بعد المصاريف', _today.profit - _todayExpenses, Colors.teal, Icons.savings),
                 ]),
                 _section('الشهر', [
                   _tile('مبيعات الشهر', _month.salesTotal, Colors.green, Icons.calendar_month),
                   _tile('أرباح الشهر', _month.profit, Colors.blue, Icons.attach_money),
-                  _tile('آجل العملاء', _month.unpaidSales, Colors.red, Icons.warning),
+                  _tile('الصافي بعد المصاريف', _month.profit - _monthExpenses, Colors.teal, Icons.savings),
                 ]),
                 const SizedBox(height: 8),
                 const Text('الأكثر مبيعاً (الشهر)',

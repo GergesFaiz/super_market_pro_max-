@@ -152,6 +152,27 @@ class ShopRepository {
     return rows.map(InvoiceItem.fromMap).toList();
   }
 
+  // ── Expenses ──
+  Future<List<Expense>> getExpensesInRange(int from, int to) async {
+    final db = await _database.db;
+    final rows = await db.query('expenses',
+        where: 'date >= ? AND date < ?',
+        whereArgs: [from, to],
+        orderBy: 'date DESC');
+    return rows.map(Expense.fromMap).toList();
+  }
+
+  Future<void> addExpense(Expense e) async {
+    final db = await _database.db;
+    await db.insert('expenses', e.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> deleteExpense(String id) async {
+    final db = await _database.db;
+    await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
+  }
+
   // ── Backup: export/import all tables as JSON ──
   Future<String> exportJson() async {
     final db = await _database.db;
@@ -161,7 +182,8 @@ class ShopRepository {
       'products',
       'parties',
       'invoices',
-      'invoice_items'
+      'invoice_items',
+      'expenses',
     ]) {
       data[t] = await db.query(t);
     }
@@ -177,7 +199,8 @@ class ShopRepository {
         'products',
         'parties',
         'invoices',
-        'invoice_items'
+        'invoice_items',
+        'expenses',
       ]) {
         await txn.delete(t);
         final rows = (data[t] as List?) ?? [];
