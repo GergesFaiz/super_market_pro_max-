@@ -77,4 +77,40 @@ void main() {
     );
     expect(p.profitPerUnit, 15);
   });
+
+  test('unit cost is auto-computed from carton price and factor', () {
+    const p = Product(
+      id: 'p',
+      name: 'Sugar',
+      buyPrice: 240,
+      sellPrice: 25,
+      createdAt: 0,
+      purchaseUnit: 'كرتون',
+      unitFactor: 12,
+      unitName: 'قطعة',
+    );
+    expect(p.unitCost, 20);
+  });
+
+  test('profitByProduct ranks products by profit', () {
+    final list = profitByProduct([
+      _item('a', 'Sugar', 10, 20, 30), // 100
+      _item('b', 'Rice', 5, 30, 40), // 50
+      _item('c', 'Sugar', 5, 20, 30), // +50 => Sugar 150 total, qty 15
+    ]);
+    expect(list.length, 2);
+    expect(list[0].name, 'Sugar');
+    expect(list[0].profit, 150);
+    expect(list[0].qty, 15);
+    expect(list[1].name, 'Rice');
+  });
+
+  test('product copyWith keeps id and dates', () {
+    const p = Product(id: 'p', name: 'Tea', buyPrice: 10, sellPrice: 15, createdAt: 7);
+    final c = p.copyWith(sellPrice: 20);
+    expect(c.id, 'p');
+    expect(c.createdAt, 7);
+    expect(c.sellPrice, 20);
+    expect(c.buyPrice, 10);
+  });
 }
