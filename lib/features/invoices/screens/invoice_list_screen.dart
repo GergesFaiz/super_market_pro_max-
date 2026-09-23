@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../cubit/invoices_cubit.dart';
+import 'invoice_preview_screen.dart';
 import 'new_invoice_screen.dart';
 
 /// History list for one invoice kind ('sale' | 'purchase').
@@ -32,6 +33,14 @@ class InvoiceListScreen extends StatelessWidget {
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           child: ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        InvoicePreviewScreen(invoice: inv)),
+                              );
+                            },
                             leading: CircleAvatar(
                               backgroundColor: isSale ? Colors.green : Colors.orange,
                               child: Icon(isSale ? Icons.point_of_sale : Icons.shopping_bag,

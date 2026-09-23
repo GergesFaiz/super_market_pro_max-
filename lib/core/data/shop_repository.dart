@@ -135,6 +135,13 @@ class ShopRepository {
     return rows.map(Invoice.fromMap).toList();
   }
 
+  Future<List<InvoiceItem>> getItems(String invoiceId) async {
+    final db = await _database.db;
+    final rows = await db.query('invoice_items',
+        where: 'invoice_id = ?', whereArgs: [invoiceId]);
+    return rows.map(InvoiceItem.fromMap).toList();
+  }
+
   Future<List<InvoiceItem>> getSaleItemsInRange(int from, int to) async {
     final db = await _database.db;
     final rows = await db.rawQuery('''
