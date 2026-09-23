@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/shop_models.dart';
+import '../../scanner/screens/barcode_scanner_screen.dart';
 import '../cubit/inventory_cubit.dart';
 
 /// Inventory: product list + search + add/edit + stock +/- + categories.
@@ -126,7 +127,22 @@ class InventoryScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم المنتج *')),
-                TextField(controller: barcode, decoration: const InputDecoration(labelText: 'الباركود')),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: barcode, decoration: const InputDecoration(labelText: 'الباركود'))),
+                    IconButton(
+                      tooltip: 'مسح باركود',
+                      icon: const Icon(Icons.qr_code_scanner),
+                      onPressed: () async {
+                        final code = await Navigator.push<String>(
+                          ctx,
+                          MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+                        );
+                        if (code != null) barcode.text = code;
+                      },
+                    ),
+                  ],
+                ),
                 DropdownButtonFormField<String>(
                   initialValue: catId,
                   decoration: const InputDecoration(labelText: 'التصنيف'),

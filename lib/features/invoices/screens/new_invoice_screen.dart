@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/data/shop_repository.dart';
 import '../../../core/models/shop_models.dart';
+import '../../../core/widgets/repository_scope.dart';
+import '../../scanner/screens/barcode_scanner_screen.dart';
 import '../cubit/invoices_cubit.dart';
 
 /// New invoice: pick products into a cart, set paid/discount/party, save.
@@ -30,11 +31,32 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
   }
 
   Future<void> _loadParties() async {
-    final repo = context.read<ShopRepository>();
+    final repo = RepositoryScope.of(context);
     final list = await repo.getParties(isSale ? 'customer' : 'supplier');
     if (mounted) setState(() => _parties = list);
   }
 
+  Future<void> _scan() async {
+    final code = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+    );
+    if (code == null || !mounted) return;
+    final cubit = context.read<InvoicesCubit>();
+    final match = cubit.state.catalog.where((p) => p.barcode == code).toList();
+    if (match.length == 1) {
+      cubit.addToCart(match.first);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تمت إضافة ${match.first.name}')));
+      }
+      _search.clear();
+      _onSearch('');
+    } else {
+      _search.text = code;
+      _onSearch(code);
+    }
+  }
   void _onSearch(String q) {
     final catalog = context.read<InvoicesCubit>().state.catalog;
     setState(() {
@@ -60,13 +82,25 @@ class _NewInvoiceScreenState extends State<NewInvoiceScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: TextField(
-                  controller: _search,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'بحث عن منتج...',
-                  ),
-                  onChanged: _onSearch,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _search,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: 'بحث عن منتج...',
+                        ),
+                        onChanged: _onSearch,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      tooltip: 'مسح باركود',
+                      icon: const Icon(Icons.qr_code_scanner),
+                      onPressed: _scan,
+                    ),
+                  ],
                 ),
               ),
               Expanded(
