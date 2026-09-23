@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../core/data/shop_repository.dart';
 import '../../../core/models/shop_models.dart';
 import '../../../core/settings/shop_settings.dart';
 import '../../../core/widgets/repository_scope.dart';
@@ -72,7 +71,9 @@ class _InvoicePreviewScreenState extends State<InvoicePreviewScreen> {
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: 'مشاركة الفاتورة',
-            onPressed: _loading ? null : () => Share.share(_text()),
+            onPressed: _loading
+                ? null
+                : () => SharePlus.instance.share(ShareParams(text: _text())),
           ),
         ],
       ),
