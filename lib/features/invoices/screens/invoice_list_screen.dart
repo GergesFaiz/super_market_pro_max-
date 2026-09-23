@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../import_excel/screens/excel_import_screen.dart';
 import '../cubit/invoices_cubit.dart';
 import 'invoice_preview_screen.dart';
 import 'new_invoice_screen.dart';
@@ -18,7 +19,22 @@ class InvoiceListScreen extends StatelessWidget {
     return BlocBuilder<InvoicesCubit, InvoicesState>(
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(title: Text(isSale ? 'فواتير البيع' : 'فواتير الشراء')),
+          appBar: AppBar(
+            title: Text(isSale ? 'فواتير البيع' : 'فواتير الشراء'),
+            actions: [
+              if (!isSale)
+                IconButton(
+                  tooltip: 'استيراد من Excel',
+                  icon: const Icon(Icons.upload_file),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ExcelImportScreen()),
+                    ).then((_) => context.read<InvoicesCubit>().loadHistory(kind));
+                  },
+                ),
+            ],
+          ),
           body: state.loading
               ? const Center(child: CircularProgressIndicator())
               : state.invoices.isEmpty

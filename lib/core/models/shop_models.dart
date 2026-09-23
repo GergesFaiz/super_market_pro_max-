@@ -46,6 +46,32 @@ class Product {
   /// Cost of one selling unit (auto: purchase price / factor).
   double get unitCost => unitFactor > 0 ? buyPrice / unitFactor : buyPrice;
 
+  Product copyWith({
+    String? name,
+    String? barcode,
+    String? categoryId,
+    double? buyPrice,
+    double? sellPrice,
+    double? quantity,
+    String? purchaseUnit,
+    double? unitFactor,
+    String? unitName,
+  }) {
+    return Product(
+      id: id,
+      name: name ?? this.name,
+      barcode: barcode ?? this.barcode,
+      categoryId: categoryId ?? this.categoryId,
+      buyPrice: buyPrice ?? this.buyPrice,
+      sellPrice: sellPrice ?? this.sellPrice,
+      quantity: quantity ?? this.quantity,
+      createdAt: createdAt,
+      purchaseUnit: purchaseUnit ?? this.purchaseUnit,
+      unitFactor: unitFactor ?? this.unitFactor,
+      unitName: unitName ?? this.unitName,
+    );
+  }
+
   Map<String, Object?> toMap() => {
         'id': id,
         'name': name,
