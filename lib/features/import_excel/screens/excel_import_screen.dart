@@ -3,7 +3,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/data/shop_repository.dart';
 import '../../../core/models/shop_models.dart';
 import '../../../core/widgets/repository_scope.dart';
 
@@ -36,16 +35,16 @@ class _ExcelImportScreenState extends State<ExcelImportScreen> {
   double get _total => _rows.fold(0, (s, r) => s + r.qty * r.buy);
 
   Future<void> _pick() async {
-    final res = await FilePicker.platform.pickFiles(
+    final files = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
-      withData: true,
     );
-    final bytes = res?.files.single.bytes;
-    if (bytes == null) return;
+    if (files.isEmpty) return;
+    final file = files.single;
+    final bytes = await file.readAsBytes();
     setState(() {
       _busy = true;
-      _fileName = res!.files.single.name;
+      _fileName = file.name;
     });
     try {
       final excel = Excel.decodeBytes(bytes);

@@ -27,10 +27,11 @@ class InvoiceListScreen extends StatelessWidget {
                   tooltip: 'استيراد من Excel',
                   icon: const Icon(Icons.upload_file),
                   onPressed: () {
+                    final cubit = context.read<InvoicesCubit>();
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const ExcelImportScreen()),
-                    ).then((_) => context.read<InvoicesCubit>().loadHistory(kind));
+                    ).then((_) => cubit.loadHistory(kind));
                   },
                 ),
             ],
