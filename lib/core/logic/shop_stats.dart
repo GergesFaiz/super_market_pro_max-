@@ -79,3 +79,33 @@ List<MapEntry<String, double>> topSelling(List<InvoiceItem> saleItems, {int limi
     ..sort((a, b) => b.value.compareTo(a.value));
   return entries.take(limit).toList();
 }
+
+/// Profit aggregated per product (most profitable products).
+class ProductProfit {
+  final String name;
+  final double qty;
+  final double revenue;
+  final double profit;
+  const ProductProfit({
+    required this.name,
+    required this.qty,
+    required this.revenue,
+    required this.profit,
+  });
+}
+
+List<ProductProfit> profitByProduct(List<InvoiceItem> saleItems, {int limit = 10}) {
+  final map = <String, ProductProfit>{};
+  for (final it in saleItems) {
+    final prev = map[it.productName];
+    map[it.productName] = ProductProfit(
+      name: it.productName,
+      qty: (prev?.qty ?? 0) + it.qty,
+      revenue: (prev?.revenue ?? 0) + it.sellPrice * it.qty,
+      profit: (prev?.profit ?? 0) + it.lineProfit,
+    );
+  }
+  final list = map.values.toList()
+    ..sort((a, b) => b.profit.compareTo(a.profit));
+  return list.take(limit).toList();
+}

@@ -12,6 +12,7 @@ import 'features/invoices/cubit/invoices_cubit.dart';
 import 'features/invoices/screens/invoice_list_screen.dart';
 import 'features/parties/cubit/parties_cubit.dart';
 import 'features/parties/screens/parties_screen.dart';
+import 'features/reports/screens/reports_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 
 void main() {
@@ -127,6 +128,17 @@ class MoreScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const PartiesScreen(kind: 'supplier')),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.bar_chart, color: Colors.purple),
+            title: const Text('التقارير والأرباح'),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReportsScreen()),
               );
             },
           ),
