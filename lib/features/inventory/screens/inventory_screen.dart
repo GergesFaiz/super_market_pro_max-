@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/models/shop_models.dart';
+import '../../../core/widgets/repository_scope.dart';
 import '../../scanner/screens/barcode_scanner_screen.dart';
 import '../cubit/inventory_cubit.dart';
 
@@ -21,6 +25,20 @@ class InventoryScreen extends StatelessWidget {
                 icon: const Icon(Icons.category),
                 tooltip: 'التصنيفات',
                 onPressed: () => _categoriesSheet(context, state),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'مشاركة الأصناف',
+                onSelected: (v) {
+                  if (v == 'share') {
+                    _shareCatalog(context, state);
+                  } else {
+                    _importCatalog(context);
+                  }
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'share', child: Text('مشاركة الأصناف لهاتف آخر')),
+                  PopupMenuItem(value: 'import', child: Text('استقبال أصناف')),
+                ],
               ),
             ],
           ),
@@ -197,8 +215,59 @@ class InventoryScreen extends StatelessWidget {
     );
   }
 
-  void _categoriesSheet(BuildContext context, InventoryState state) {
+  /// Share all products (with buy/sell prices) as JSON to another phone.
+  Future<void> _shareCatalog(BuildContext context, InventoryState state) async {
+    if (state.products.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('لا توجد أصناف للمشاركة')));
+      return;
+    }
+    final json = jsonEncode(state.products.map((p) => p.toMap()).toList());
+    await SharePlus.instance.share(ShareParams(text: json, subject: 'أصناف المحل'));
+  }
+
+  /// Receive products JSON shared from another phone.
+  void _importCatalog(BuildContext context) {
     final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('استقبال أصناف'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 6,
+          decoration: const InputDecoration(hintText: 'الصق نص الأصناف هنا...'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final list = (jsonDecode(ctrl.text.trim()) as List)
+                    .map((e) => Product.fromMap(Map<String, Object?>.from(e as Map)))
+                    .toList();
+                final repo = RepositoryScope.of(context);
+                for (final p in list) {
+                  await repo.upsertProduct(p);
+                }
+                if (!context.mounted) return;
+                context.read<InventoryCubit>().load();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تم استقبال ${list.length} صنف')));
+              } catch (_) {
+                ScaffoldMessenger.of(ctx)
+                    .showSnackBar(const SnackBar(content: Text('نص غير صالح')));
+              }
+            },
+            child: const Text('استقبال'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _categoriesSheet(BuildContext context, InventoryState state) {    final ctrl = TextEditingController();
     showModalBottomSheet(
       context: context,
       builder: (ctx) => Padding(
