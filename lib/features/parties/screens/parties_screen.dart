@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/models/shop_models.dart';
+import '../../../domain/entities/shop_entities.dart';
 import '../cubit/parties_cubit.dart';
 
 /// Customers or suppliers list with balances (kind: 'customer' | 'supplier').

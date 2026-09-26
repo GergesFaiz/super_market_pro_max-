@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/models/shop_models.dart';
+import '../../../domain/entities/shop_entities.dart';
 import '../../../core/widgets/repository_scope.dart';
 
 /// Daily shop expenses (rent, salaries, utilities...).

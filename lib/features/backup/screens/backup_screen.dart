@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-import '../../../core/auth/auth_service.dart';
-import '../../../core/data/shop_repository.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/widgets/repository_scope.dart';
+import '../../../domain/repositories/shop_repository.dart';
 
 /// Backup: export all data as JSON (copy it) or import pasted JSON, plus the
 /// cloud sync status for the signed-in account.
@@ -72,14 +70,14 @@ class _BackupScreenState extends State<BackupScreen> {
       ),
     );
     if (confirmed == true) {
-      await AuthService.instance.signOut();
+      await SyncService.instance.auth.signOut();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final repo = RepositoryScope.of(context);
-    final email = sb.Supabase.instance.client.auth.currentUser?.email ?? '';
+    final email = SyncService.instance.auth.currentUserEmail ?? '';
     return Scaffold(
       appBar: AppBar(title: const Text('نسخ احتياطي')),
       body: ListView(

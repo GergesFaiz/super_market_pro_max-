@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/logic/shop_stats.dart';
 import '../../../core/widgets/repository_scope.dart';
+import '../../../domain/usecases/shop_stats.dart';
 
 /// Reports: day / week / month / year stats + most profitable products.
 class ReportsScreen extends StatefulWidget {

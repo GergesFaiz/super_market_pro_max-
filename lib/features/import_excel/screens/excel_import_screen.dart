@@ -3,8 +3,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/models/shop_models.dart';
 import '../../../core/widgets/repository_scope.dart';
+import '../../../domain/entities/shop_entities.dart';
+import '../../../domain/usecases/record_invoice_usecase.dart';
 
 class _ExcelRow {
   final String name;
@@ -121,7 +122,7 @@ class _ExcelImportScreenState extends State<ExcelImportScreen> {
         ));
       }
       final paid = double.tryParse(_paid.text) ?? 0;
-      await repo.saveInvoice(
+      await RecordInvoiceUseCase(repo).call(
         Invoice(
           id: invoiceId,
           kind: 'purchase',

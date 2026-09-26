@@ -3,11 +3,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/data/shop_repository.dart';
 import 'core/sync/sync_service.dart';
-import 'core/sync/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/repository_scope.dart';
+import 'data/local_preferences_gateway.dart';
+import 'data/local/sqlite_shop_repository.dart';
+import 'data/remote/supabase_auth_gateway.dart';
+import 'data/remote/supabase_config.dart';
+import 'data/remote/supabase_sync_gateway.dart';
+import 'domain/repositories/shop_repository.dart';
+import 'domain/usecases/handle_sign_in_usecase.dart';
+import 'domain/usecases/record_invoice_usecase.dart';
+import 'domain/usecases/sync_data_usecase.dart';
 import 'features/auth/screens/auth_gate.dart';
 import 'features/backup/screens/backup_screen.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';import 'features/inventory/cubit/inventory_cubit.dart';
@@ -26,8 +33,24 @@ void main() async {
     url: SupabaseConfig.url,
     anonKey: SupabaseConfig.anonKey,
   );
-  final repo = ShopRepository(onWrite: SyncService.instance.notifyChanged);
-  await SyncService.instance.init(repo);
+
+  // Composition root: this is the one place in the app that wires domain
+  // interfaces to their concrete (SQLite/Supabase/SharedPreferences)
+  // implementations. Everything downstream - cubits, screens, use cases -
+  // only ever sees the abstractions.
+  final ShopRepository repo =
+      SqliteShopRepository(onWrite: SyncService.instance.notifyChanged);
+  final authGateway = SupabaseAuthGateway();
+  final syncGateway = SupabaseSyncGateway();
+  final preferencesGateway = LocalPreferencesGateway();
+
+  SyncService.instance.configure(
+    authGateway: authGateway,
+    syncDataUseCase: SyncDataUseCase(repo, syncGateway),
+    handleSignInUseCase: HandleSignInUseCase(repo, preferencesGateway),
+  );
+  await SyncService.instance.init();
+
   runApp(SuperMarketProMax(repo: repo));
 }
 
@@ -42,7 +65,7 @@ class SuperMarketProMax extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider(create: (_) => InventoryCubit(repo)..load()),
-          BlocProvider(create: (_) => InvoicesCubit(repo)),
+          BlocProvider(create: (_) => InvoicesCubit(repo, RecordInvoiceUseCase(repo))),
           BlocProvider(create: (_) => PartiesCubit(repo)),
         ],
         child: MaterialApp(

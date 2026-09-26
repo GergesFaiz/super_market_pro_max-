@@ -1,4 +1,4 @@
-import '../models/shop_models.dart';
+import '../entities/shop_entities.dart';
 
 /// Pure profit/report calculations (unit-testable, no DB).
 class ShopStats {

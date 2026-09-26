@@ -2,8 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/data/shop_repository.dart';
-import '../../../core/models/shop_models.dart';
+import '../../../domain/entities/shop_entities.dart';
+import '../../../domain/repositories/shop_repository.dart';
 
 class PartiesState extends Equatable {
   final bool loading;

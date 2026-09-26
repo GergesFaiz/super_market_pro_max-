@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/models/shop_models.dart';
+import '../../../domain/entities/shop_entities.dart';
 import '../../../core/widgets/repository_scope.dart';
 import '../../scanner/screens/barcode_scanner_screen.dart';
 import '../cubit/invoices_cubit.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/shop_repository.dart';
+import '../../domain/repositories/shop_repository.dart';
 
 /// Single inherited accessor for [ShopRepository] (avoids a provider package).
 class RepositoryScope extends InheritedWidget {

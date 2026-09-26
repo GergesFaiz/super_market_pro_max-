@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../core/models/shop_models.dart';
+import '../../../domain/entities/shop_entities.dart';
 import '../../../core/settings/shop_settings.dart';
 import '../../../core/widgets/repository_scope.dart';
 

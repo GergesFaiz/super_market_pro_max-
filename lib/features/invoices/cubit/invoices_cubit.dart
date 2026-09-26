@@ -2,8 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/data/shop_repository.dart';
-import '../../../core/models/shop_models.dart';
+import '../../../domain/entities/shop_entities.dart';
+import '../../../domain/repositories/shop_repository.dart';
+import '../../../domain/usecases/record_invoice_usecase.dart';
 
 class CartLine extends Equatable {
   final Product product;
@@ -68,8 +69,9 @@ class InvoicesState extends Equatable {
 }
 
 class InvoicesCubit extends Cubit<InvoicesState> {
-  InvoicesCubit(this._repo) : super(const InvoicesState());
+  InvoicesCubit(this._repo, this._recordInvoice) : super(const InvoicesState());
   final ShopRepository _repo;
+  final RecordInvoiceUseCase _recordInvoice;
   final _uuid = const Uuid();
 
   Future<void> loadHistory(String kind) async {
@@ -130,7 +132,7 @@ class InvoicesCubit extends Cubit<InvoicesState> {
               sellPrice: kind == 'sale' ? l.product.sellPrice : l.product.buyPrice,
             ))
         .toList();
-    await _repo.saveInvoice(
+    await _recordInvoice(
       Invoice(
         id: id,
         kind: kind,

@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
-import '../db/app_database.dart';
-import '../models/shop_models.dart';
+import '../../domain/entities/shop_entities.dart';
+import '../../domain/entities/shop_snapshot.dart';
+import '../../domain/repositories/shop_repository.dart';
+import 'app_database.dart';
 
 const kSyncTables = [
   'categories',
@@ -14,31 +16,35 @@ const kSyncTables = [
   'expenses',
 ];
 
-/// Single repository over SQLite for the whole shop.
-class ShopRepository {
-  ShopRepository({AppDatabase? database, this.onWrite})
+/// SQLite-backed [ShopRepository] - the only place in the app that knows
+/// this data lives in a local sqflite database.
+class SqliteShopRepository implements ShopRepository {
+  SqliteShopRepository({AppDatabase? database, this.onWrite})
       : _database = database ?? AppDatabase.instance;
   final AppDatabase _database;
 
-  /// Called after any mutating operation, so a sync service can react
+  /// Called after any mutating operation, so the sync controller can react
   /// (e.g. push the change to the cloud when online).
   final void Function()? onWrite;
 
   int get _now => DateTime.now().millisecondsSinceEpoch;
 
   // ── Categories ──
+  @override
   Future<List<Category>> getCategories() async {
     final db = await _database.db;
     final rows = await db.query('categories', orderBy: 'name');
     return rows.map(Category.fromMap).toList();
   }
 
-  Future<void> addCategory(Category c) async {
+  @override
+  Future<void> addCategory(Category category) async {
     final db = await _database.db;
-    await db.insert('categories', c.copyWithUpdatedAt(_now).toMap());
+    await db.insert('categories', category.copyWithUpdatedAt(_now).toMap());
     onWrite?.call();
   }
 
+  @override
   Future<void> deleteCategory(String id) async {
     final db = await _database.db;
     await db.delete('categories', where: 'id = ?', whereArgs: [id]);
@@ -46,6 +52,7 @@ class ShopRepository {
   }
 
   // ── Products ──
+  @override
   Future<List<Product>> getProducts({String query = ''}) async {
     final db = await _database.db;
     if (query.trim().isEmpty) {
@@ -61,22 +68,25 @@ class ShopRepository {
     return rows.map(Product.fromMap).toList();
   }
 
-  Future<void> upsertProduct(Product p) async {
+  @override
+  Future<void> upsertProduct(Product product) async {
     final db = await _database.db;
     await db.insert(
       'products',
-      p.copyWithUpdatedAt(_now).toMap(),
+      product.copyWithUpdatedAt(_now).toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
     onWrite?.call();
   }
 
+  @override
   Future<void> deleteProduct(String id) async {
     final db = await _database.db;
     await db.delete('products', where: 'id = ?', whereArgs: [id]);
     onWrite?.call();
   }
 
+  @override
   Future<List<Product>> lowStock(double threshold) async {
     final db = await _database.db;
     final rows = await db.query('products',
@@ -85,6 +95,7 @@ class ShopRepository {
   }
 
   // ── Parties ──
+  @override
   Future<List<Party>> getParties(String kind) async {
     final db = await _database.db;
     final rows = await db.query('parties',
@@ -92,21 +103,29 @@ class ShopRepository {
     return rows.map(Party.fromMap).toList();
   }
 
-  Future<void> upsertParty(Party p) async {
+  @override
+  Future<void> upsertParty(Party party) async {
     final db = await _database.db;
-    await db.insert('parties', p.copyWithUpdatedAt(_now).toMap(),
+    await db.insert('parties', party.copyWithUpdatedAt(_now).toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
     onWrite?.call();
   }
 
+  @override
   Future<void> deleteParty(String id) async {
     final db = await _database.db;
     await db.delete('parties', where: 'id = ?', whereArgs: [id]);
     onWrite?.call();
   }
 
-  // ── Invoices (sale/purchase) ──
-  Future<void> saveInvoice(Invoice invoice, List<InvoiceItem> items) async {
+  // ── Invoices ──
+  @override
+  Future<void> recordInvoice(
+    Invoice invoice,
+    List<InvoiceItem> items, {
+    required Map<String, double> productQuantityDeltas,
+    double? partyBalanceDelta,
+  }) async {
     final db = await _database.db;
     final now = _now;
     await db.transaction((txn) async {
@@ -117,29 +136,23 @@ class ShopRepository {
       for (final it in items) {
         await txn.insert('invoice_items', it.copyWithUpdatedAt(now).toMap());
       }
-      // Adjust stock + party balance.
-      for (final it in items) {
-        if (it.productId != null) {
-          final sign = invoice.kind == 'sale' ? -1 : 1;
-          await txn.rawUpdate(
-            'UPDATE products SET quantity = quantity + ?, updated_at = ? WHERE id = ?',
-            [sign * it.qty, now, it.productId],
-          );
-        }
+      for (final entry in productQuantityDeltas.entries) {
+        await txn.rawUpdate(
+          'UPDATE products SET quantity = quantity + ?, updated_at = ? WHERE id = ?',
+          [entry.value, now, entry.key],
+        );
       }
-      if (invoice.partyId != null) {
-        final delta = invoice.kind == 'sale'
-            ? invoice.remaining
-            : -invoice.remaining;
+      if (invoice.partyId != null && partyBalanceDelta != null) {
         await txn.rawUpdate(
           'UPDATE parties SET balance = balance + ?, updated_at = ? WHERE id = ?',
-          [delta, now, invoice.partyId],
+          [partyBalanceDelta, now, invoice.partyId],
         );
       }
     });
     onWrite?.call();
   }
 
+  @override
   Future<List<Invoice>> getInvoices(String kind, {int limit = 100}) async {
     final db = await _database.db;
     final rows = await db.query('invoices',
@@ -150,6 +163,7 @@ class ShopRepository {
     return rows.map(Invoice.fromMap).toList();
   }
 
+  @override
   Future<List<Invoice>> getInvoicesInRange(int from, int to) async {
     final db = await _database.db;
     final rows = await db.query('invoices',
@@ -159,6 +173,7 @@ class ShopRepository {
     return rows.map(Invoice.fromMap).toList();
   }
 
+  @override
   Future<List<InvoiceItem>> getItems(String invoiceId) async {
     final db = await _database.db;
     final rows = await db.query('invoice_items',
@@ -166,6 +181,7 @@ class ShopRepository {
     return rows.map(InvoiceItem.fromMap).toList();
   }
 
+  @override
   Future<List<InvoiceItem>> getSaleItemsInRange(int from, int to) async {
     final db = await _database.db;
     final rows = await db.rawQuery('''
@@ -177,6 +193,7 @@ class ShopRepository {
   }
 
   // ── Expenses ──
+  @override
   Future<List<Expense>> getExpensesInRange(int from, int to) async {
     final db = await _database.db;
     final rows = await db.query('expenses',
@@ -186,20 +203,23 @@ class ShopRepository {
     return rows.map(Expense.fromMap).toList();
   }
 
-  Future<void> addExpense(Expense e) async {
+  @override
+  Future<void> addExpense(Expense expense) async {
     final db = await _database.db;
-    await db.insert('expenses', e.copyWithUpdatedAt(_now).toMap(),
+    await db.insert('expenses', expense.copyWithUpdatedAt(_now).toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
     onWrite?.call();
   }
 
+  @override
   Future<void> deleteExpense(String id) async {
     final db = await _database.db;
     await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
     onWrite?.call();
   }
 
-  // ── Backup: export/import all tables as JSON ──
+  // ── Backup / sync ──
+  @override
   Future<String> exportJson() async {
     final db = await _database.db;
     final data = <String, Object>{};
@@ -209,6 +229,7 @@ class ShopRepository {
     return jsonEncode(data);
   }
 
+  @override
   Future<void> importJson(String json) async {
     final db = await _database.db;
     final data = jsonDecode(json) as Map<String, dynamic>;
@@ -224,36 +245,45 @@ class ShopRepository {
     onWrite?.call();
   }
 
-  /// Deletes all local data. Used when switching to a different account on
-  /// the same device, so the new owner never sees the previous shop's data.
-  Future<void> wipeLocal() async {
+  @override
+  Future<ShopSnapshot> getSnapshot() async {
     final db = await _database.db;
-    await db.transaction((txn) async {
-      for (final t in kSyncTables) {
-        await txn.delete(t);
-      }
-    });
+    return ShopSnapshot(
+      categories: (await db.query('categories')).map(Category.fromMap).toList(),
+      products: (await db.query('products')).map(Product.fromMap).toList(),
+      parties: (await db.query('parties')).map(Party.fromMap).toList(),
+      invoices: (await db.query('invoices')).map(Invoice.fromMap).toList(),
+      invoiceItems:
+          (await db.query('invoice_items')).map(InvoiceItem.fromMap).toList(),
+      expenses: (await db.query('expenses')).map(Expense.fromMap).toList(),
+    );
   }
 
-  // ── Cloud sync helpers ──
-
-  /// All rows of [table] as raw maps, for pushing to the cloud.
-  Future<List<Map<String, Object?>>> tableRows(String table) async {
-    final db = await _database.db;
-    return db.query(table);
+  @override
+  Future<void> mergeSnapshot(ShopSnapshot snapshot) async {
+    await _mergeRows('categories', snapshot.categories.map((e) => e.toMap()));
+    await _mergeRows('products', snapshot.products.map((e) => e.toMap()));
+    await _mergeRows('parties', snapshot.parties.map((e) => e.toMap()));
+    await _mergeRows('invoices', snapshot.invoices.map((e) => e.toMap()));
+    await _mergeRows(
+        'invoice_items', snapshot.invoiceItems.map((e) => e.toMap()));
+    await _mergeRows('expenses', snapshot.expenses.map((e) => e.toMap()));
   }
 
-  /// Inserts/updates raw rows coming from the cloud, keeping whichever
-  /// version (local or remote) has the newer `updated_at`.
-  Future<void> mergeRows(String table, List<Map<String, Object?>> rows) async {
-    if (rows.isEmpty) return;
+  /// Inserts/updates raw rows, keeping whichever version (local or given)
+  /// has the newer `updated_at` - used when merging data pulled from the
+  /// cloud, so a stale pull never overwrites a newer local edit.
+  Future<void> _mergeRows(
+      String table, Iterable<Map<String, Object?>> rows) async {
+    final list = rows.toList();
+    if (list.isEmpty) return;
     final db = await _database.db;
     await db.transaction((txn) async {
-      for (final row in rows) {
+      for (final row in list) {
         final id = row['id'];
-        final remoteUpdatedAt = (row['updated_at'] as num?)?.toInt() ?? 0;
-        final existing = await txn
-            .query(table, where: 'id = ?', whereArgs: [id], limit: 1);
+        final incomingUpdatedAt = (row['updated_at'] as num?)?.toInt() ?? 0;
+        final existing =
+            await txn.query(table, where: 'id = ?', whereArgs: [id], limit: 1);
         if (existing.isEmpty) {
           await txn.insert(table, row,
               conflictAlgorithm: ConflictAlgorithm.replace);
@@ -261,16 +291,27 @@ class ShopRepository {
         }
         final localUpdatedAt =
             (existing.first['updated_at'] as num?)?.toInt() ?? 0;
-        if (remoteUpdatedAt > localUpdatedAt) {
+        if (incomingUpdatedAt > localUpdatedAt) {
           await txn.update(table, row, where: 'id = ?', whereArgs: [id]);
         }
       }
     });
   }
+
+  @override
+  Future<void> wipeAll() async {
+    final db = await _database.db;
+    await db.transaction((txn) async {
+      for (final t in kSyncTables) {
+        await txn.delete(t);
+      }
+    });
+  }
 }
 
-extension _WithUpdatedAt on Category {
-  Category copyWithUpdatedAt(int t) => Category(id: id, name: name, updatedAt: t);
+extension _CategoryWithUpdatedAt on Category {
+  Category copyWithUpdatedAt(int t) =>
+      Category(id: id, name: name, updatedAt: t);
 }
 
 extension _ProductWithUpdatedAt on Product {

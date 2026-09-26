@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/data/shop_repository.dart';
-import '../../../core/logic/shop_stats.dart';
-import '../../../core/models/shop_models.dart';
 import '../../../core/widgets/repository_scope.dart';
+import '../../../domain/entities/shop_entities.dart';
+import '../../../domain/repositories/shop_repository.dart';
+import '../../../domain/usecases/shop_stats.dart';
 
 /// Home dashboard: today + month stats, top sellers, low stock alerts.
 class DashboardScreen extends StatefulWidget {

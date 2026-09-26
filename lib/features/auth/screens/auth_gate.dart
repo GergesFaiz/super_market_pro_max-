@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../../core/sync/sync_service.dart';
 import 'login_screen.dart';
 
 /// Shows [child] once a Google account is signed in, otherwise [LoginScreen].
@@ -10,11 +10,10 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<sb.AuthState>(
-      stream: sb.Supabase.instance.client.auth.onAuthStateChange,
+    return StreamBuilder<String?>(
+      stream: SyncService.instance.auth.userIdChanges,
       builder: (context, snapshot) {
-        final signedIn =
-            sb.Supabase.instance.client.auth.currentUser != null;
+        final signedIn = SyncService.instance.auth.currentUserId != null;
         return signedIn ? child : const LoginScreen();
       },
     );

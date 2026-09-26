@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/auth/auth_service.dart';
 import '../../../core/sync/sync_service.dart';
 
 /// Shown when no account is signed in. Signing in with Google isolates each
@@ -18,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     setState(() => _busy = true);
     try {
-      await AuthService.instance.signInWithGoogle();
+      await SyncService.instance.auth.signInWithGoogle();
       final isDifferentAccount =
           await SyncService.instance.isDifferentAccountThanBefore();
       var wipeLocalFirst = false;
