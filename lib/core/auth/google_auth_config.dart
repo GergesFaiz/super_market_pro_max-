@@ -6,5 +6,5 @@
 /// Supabase verify the Google identity token.
 class GoogleAuthConfig {
   static const webClientId =
-      'PASTE_YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com';
+      '1003506990304-gfjiltpkhlovtt4fc3d3h8gennqocqir.apps.googleusercontent.com';
 }
