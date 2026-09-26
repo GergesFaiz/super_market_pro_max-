@@ -1,12 +1,17 @@
 class Category {
   final String id;
   final String name;
-  const Category({required this.id, required this.name});
+  final int updatedAt;
+  const Category({required this.id, required this.name, this.updatedAt = 0});
 
-  Map<String, Object?> toMap() => {'id': id, 'name': name};
+  Map<String, Object?> toMap() =>
+      {'id': id, 'name': name, 'updated_at': updatedAt};
 
-  factory Category.fromMap(Map<String, Object?> m) =>
-      Category(id: m['id']! as String, name: m['name']! as String);
+  factory Category.fromMap(Map<String, Object?> m) => Category(
+        id: m['id']! as String,
+        name: m['name']! as String,
+        updatedAt: (m['updated_at'] as int?) ?? 0,
+      );
 }
 
 class Product {
@@ -18,6 +23,7 @@ class Product {
   final double sellPrice;
   final double quantity;
   final int createdAt;
+  final int updatedAt;
 
   /// Multi-unit support (e.g. buy by carton, sell by piece):
   /// [purchaseUnit] like 'كرتون', [unitFactor] pieces per purchase unit,
@@ -39,6 +45,7 @@ class Product {
     this.purchaseUnit = '',
     this.unitFactor = 1,
     this.unitName = '',
+    this.updatedAt = 0,
   });
 
   double get profitPerUnit => sellPrice - buyPrice;
@@ -84,6 +91,7 @@ class Product {
         'purchase_unit': purchaseUnit,
         'unit_factor': unitFactor,
         'unit_name': unitName,
+        'updated_at': updatedAt,
       };
 
   factory Product.fromMap(Map<String, Object?> m) => Product(
@@ -98,6 +106,7 @@ class Product {
         purchaseUnit: (m['purchase_unit'] as String?) ?? '',
         unitFactor: ((m['unit_factor'] as num?) ?? 1).toDouble(),
         unitName: (m['unit_name'] as String?) ?? '',
+        updatedAt: (m['updated_at'] as int?) ?? 0,
       );
 }
 
@@ -107,6 +116,7 @@ class Party {
   final String phone;
   final String kind; // customer | supplier
   final double balance; // >0 means they owe us, <0 we owe them
+  final int updatedAt;
 
   const Party({
     required this.id,
@@ -114,6 +124,7 @@ class Party {
     this.phone = '',
     required this.kind,
     this.balance = 0,
+    this.updatedAt = 0,
   });
 
   Map<String, Object?> toMap() => {
@@ -122,6 +133,7 @@ class Party {
         'phone': phone,
         'kind': kind,
         'balance': balance,
+        'updated_at': updatedAt,
       };
 
   factory Party.fromMap(Map<String, Object?> m) => Party(
@@ -130,6 +142,7 @@ class Party {
         phone: (m['phone'] as String?) ?? '',
         kind: m['kind']! as String,
         balance: (m['balance'] as num).toDouble(),
+        updatedAt: (m['updated_at'] as int?) ?? 0,
       );
 }
 
@@ -142,6 +155,7 @@ class Invoice {
   final double discount;
   final int date;
   final String notes;
+  final int updatedAt;
 
   const Invoice({
     required this.id,
@@ -152,6 +166,7 @@ class Invoice {
     this.discount = 0,
     required this.date,
     this.notes = '',
+    this.updatedAt = 0,
   });
 
   double get remaining => total - paid;
@@ -165,6 +180,7 @@ class Invoice {
         'discount': discount,
         'date': date,
         'notes': notes,
+        'updated_at': updatedAt,
       };
 
   factory Invoice.fromMap(Map<String, Object?> m) => Invoice(
@@ -176,16 +192,19 @@ class Invoice {
         discount: ((m['discount'] as num?) ?? 0).toDouble(),
         date: m['date']! as int,
         notes: (m['notes'] as String?) ?? '',
+        updatedAt: (m['updated_at'] as int?) ?? 0,
       );
 }
 
-class InvoiceItem {  final String id;
+class InvoiceItem {
+  final String id;
   final String invoiceId;
   final String? productId;
   final String productName;
   final double qty;
   final double buyPrice;
   final double sellPrice;
+  final int updatedAt;
 
   const InvoiceItem({
     required this.id,
@@ -195,6 +214,7 @@ class InvoiceItem {  final String id;
     required this.qty,
     required this.buyPrice,
     required this.sellPrice,
+    this.updatedAt = 0,
   });
 
   /// Profit for a sale line; for purchases this is 0 by definition.
@@ -208,6 +228,7 @@ class InvoiceItem {  final String id;
         'qty': qty,
         'buy_price': buyPrice,
         'sell_price': sellPrice,
+        'updated_at': updatedAt,
       };
 
   factory InvoiceItem.fromMap(Map<String, Object?> m) => InvoiceItem(
@@ -218,6 +239,7 @@ class InvoiceItem {  final String id;
         qty: (m['qty'] as num).toDouble(),
         buyPrice: (m['buy_price'] as num).toDouble(),
         sellPrice: (m['sell_price'] as num).toDouble(),
+        updatedAt: (m['updated_at'] as int?) ?? 0,
       );
 }
 
@@ -228,6 +250,7 @@ class Expense {
   final double amount;
   final int date;
   final String notes;
+  final int updatedAt;
 
   const Expense({
     required this.id,
@@ -235,6 +258,7 @@ class Expense {
     required this.amount,
     required this.date,
     this.notes = '',
+    this.updatedAt = 0,
   });
 
   Map<String, Object?> toMap() => {
@@ -243,6 +267,7 @@ class Expense {
         'amount': amount,
         'date': date,
         'notes': notes,
+        'updated_at': updatedAt,
       };
 
   factory Expense.fromMap(Map<String, Object?> m) => Expense(
@@ -251,5 +276,6 @@ class Expense {
         amount: (m['amount'] as num).toDouble(),
         date: m['date']! as int,
         notes: (m['notes'] as String?) ?? '',
+        updatedAt: (m['updated_at'] as int?) ?? 0,
       );
 }

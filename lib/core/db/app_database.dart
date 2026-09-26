@@ -18,9 +18,9 @@ class AppDatabase {
     final dir = await getDatabasesPath();
     return openDatabase(
       join(dir, 'super_market_pro_max.db'),
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
-        await _createV3(db);
+        await _createV4(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -41,15 +41,29 @@ class AppDatabase {
             notes TEXT
           )''');
         }
+        if (oldVersion < 4) {
+          for (final table in [
+            'categories',
+            'products',
+            'parties',
+            'invoices',
+            'invoice_items',
+            'expenses',
+          ]) {
+            await db.execute(
+                'ALTER TABLE $table ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
+          }
+        }
       },
     );
   }
 
-  Future<void> _createV3(Database db) async {
+  Future<void> _createV4(Database db) async {
     await db.execute('''
           CREATE TABLE categories(
             id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
+            name TEXT NOT NULL,
+            updated_at INTEGER NOT NULL DEFAULT 0
           )''');
     await db.execute('''
           CREATE TABLE products(
@@ -63,7 +77,8 @@ class AppDatabase {
             created_at INTEGER NOT NULL,
             purchase_unit TEXT DEFAULT '',
             unit_factor REAL DEFAULT 1,
-            unit_name TEXT DEFAULT ''
+            unit_name TEXT DEFAULT '',
+            updated_at INTEGER NOT NULL DEFAULT 0
           )''');
         await db.execute('''
           CREATE TABLE parties(
@@ -71,7 +86,8 @@ class AppDatabase {
             name TEXT NOT NULL,
             phone TEXT,
             kind TEXT NOT NULL,
-            balance REAL NOT NULL DEFAULT 0
+            balance REAL NOT NULL DEFAULT 0,
+            updated_at INTEGER NOT NULL DEFAULT 0
           )''');
         await db.execute('''
           CREATE TABLE invoices(
@@ -82,7 +98,8 @@ class AppDatabase {
             paid REAL NOT NULL,
             discount REAL NOT NULL DEFAULT 0,
             date INTEGER NOT NULL,
-            notes TEXT
+            notes TEXT,
+            updated_at INTEGER NOT NULL DEFAULT 0
           )''');
         await db.execute('''
           CREATE TABLE invoice_items(
@@ -92,7 +109,8 @@ class AppDatabase {
             product_name TEXT NOT NULL,
             qty REAL NOT NULL,
             buy_price REAL NOT NULL,
-            sell_price REAL NOT NULL
+            sell_price REAL NOT NULL,
+            updated_at INTEGER NOT NULL DEFAULT 0
           )''');
         await db.execute('''
           CREATE TABLE expenses(
@@ -100,7 +118,8 @@ class AppDatabase {
             title TEXT NOT NULL,
             amount REAL NOT NULL,
             date INTEGER NOT NULL,
-            notes TEXT
+            notes TEXT,
+            updated_at INTEGER NOT NULL DEFAULT 0
           )''');
   }
 

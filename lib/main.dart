@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/data/shop_repository.dart';
+import 'core/sync/sync_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/repository_scope.dart';
 import 'features/backup/screens/backup_screen.dart';
@@ -26,7 +27,8 @@ class SuperMarketProMax extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = ShopRepository();
+    final repo = ShopRepository(onWrite: SyncService.instance.notifyChanged);
+    SyncService.instance.init(repo);
     return RepositoryScope(
       repository: repo,
       child: MultiBlocProvider(
