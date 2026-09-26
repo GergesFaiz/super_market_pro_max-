@@ -51,6 +51,7 @@ dependencies:
   path_provider: ^2.1.6
   supabase_flutter: ^2.9.1
   connectivity_plus: ^6.1.5
+  google_sign_in: ^6.3.0
 
 dev_dependencies:
   flutter_test:

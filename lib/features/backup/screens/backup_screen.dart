@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../../core/auth/auth_service.dart';
 import '../../../core/data/shop_repository.dart';
 import '../../../core/sync/sync_service.dart';
 import '../../../core/widgets/repository_scope.dart';
 
-/// Backup: export all data as JSON (copy it) or import pasted JSON.
+/// Backup: export all data as JSON (copy it) or import pasted JSON, plus the
+/// cloud sync status for the signed-in account.
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
 
@@ -16,28 +19,7 @@ class BackupScreen extends StatefulWidget {
 class _BackupScreenState extends State<BackupScreen> {
   String _exported = '';
   final _importCtrl = TextEditingController();
-  final _restoreDeviceCtrl = TextEditingController();
   bool _busy = false;
-
-  Future<void> _restoreFromCloud() async {
-    final id = _restoreDeviceCtrl.text.trim();
-    if (id.isEmpty) return;
-    setState(() => _busy = true);
-    try {
-      await SyncService.instance.restoreFromDeviceId(id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم سحب البيانات من السحابة')));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('فشل الاسترجاع من السحابة')));
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
 
   Future<void> _doExport(ShopRepository repo) async {
     setState(() => _busy = true);
@@ -73,101 +55,115 @@ class _BackupScreenState extends State<BackupScreen> {
     }
   }
 
+  Future<void> _signOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text('هتقدر ترجع تسجل دخول بنفس الحساب في أي وقت وتستعيد بياناتك.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('تسجيل الخروج')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await AuthService.instance.signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final repo = RepositoryScope.of(context);
-    // Reuse the scope defined in dashboard to avoid a new dependency.
+    final email = sb.Supabase.instance.client.auth.currentUser?.email ?? '';
     return Scaffold(
       appBar: AppBar(title: const Text('نسخ احتياطي')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-                const Text('1) أخذ نسخة: اضغط الزر ثم احفظ النص المنسوخ في ملف.',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
-                  onPressed: _busy ? null : () => _doExport(repo),
-                  icon: const Icon(Icons.backup),
-                  label: const Text('نسخ احتياطي الآن'),
-                ),
-                if (_exported.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text('حجم النسخة: ${_exported.length} حرف',
-                      style: const TextStyle(color: Colors.grey)),
+          const Text('1) أخذ نسخة: اضغط الزر ثم احفظ النص المنسوخ في ملف.',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: _busy ? null : () => _doExport(repo),
+            icon: const Icon(Icons.backup),
+            label: const Text('نسخ احتياطي الآن'),
+          ),
+          if (_exported.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('حجم النسخة: ${_exported.length} حرف',
+                style: const TextStyle(color: Colors.grey)),
+          ],
+          const Divider(height: 32),
+          const Text('2) استرجاع: الصق نص النسخة هنا واضغط استرجاع.',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _importCtrl,
+            maxLines: 6,
+            decoration: const InputDecoration(hintText: 'الصق JSON هنا...'),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: _busy ? null : () => _doImport(repo),
+            icon: const Icon(Icons.restore),
+            label: const Text('استرجاع البيانات'),
+          ),
+          const Divider(height: 32),
+          const Text('3) المزامنة السحابية',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('الحساب المسجّل: $email'),
+          const SizedBox(height: 8),
+          const Text(
+            'كل مرة الجهاز يتصل بالإنترنت، بياناتك بترفع تلقائيًا لحساب جوجل بتاعك، وبياناتك مستقلة تمامًا عن أي حساب تاني.',
+          ),
+          const SizedBox(height: 8),
+          StreamBuilder<SyncStatus>(
+            stream: SyncService.instance.statusStream,
+            builder: (context, snapshot) {
+              final status = snapshot.data ?? SyncService.instance.status;
+              final text = switch (status) {
+                SyncStatus.syncing => 'جاري رفع البيانات...',
+                SyncStatus.error =>
+                  'فشلت آخر محاولة مزامنة (سيُعاد المحاولة تلقائيًا)',
+                SyncStatus.signedOut => 'غير مسجّل دخول',
+                SyncStatus.idle => SyncService.instance.lastSyncedAt != null
+                    ? 'آخر مزامنة: ${SyncService.instance.lastSyncedAt}'
+                    : 'لم تتم المزامنة بعد',
+              };
+              return Row(
+                children: [
+                  Icon(
+                    status == SyncStatus.error
+                        ? Icons.cloud_off
+                        : Icons.cloud_done,
+                    color:
+                        status == SyncStatus.error ? Colors.red : Colors.green,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(text)),
                 ],
-                const Divider(height: 32),
-                const Text('2) استرجاع: الصق نص النسخة هنا واضغط استرجاع.',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _importCtrl,
-                  maxLines: 6,
-                  decoration: const InputDecoration(hintText: 'الصق JSON هنا...'),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
-                  onPressed: _busy ? null : () => _doImport(repo),
-                  icon: const Icon(Icons.restore),
-                  label: const Text('استرجاع البيانات'),
-                ),
-                const Divider(height: 32),
-                const Text('3) المزامنة السحابية',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                const Text(
-                  'كل مرة الجهاز يتصل بالإنترنت، بياناتك بترفع تلقائيًا لسحابة Supabase عشان ماتضيعش لو الجهاز اتعطل أو ضاع.',
-                ),
-                const SizedBox(height: 8),
-                StreamBuilder<SyncStatus>(
-                  stream: SyncService.instance.statusStream,
-                  builder: (context, snapshot) {
-                    final status = snapshot.data ?? SyncService.instance.status;
-                    final text = switch (status) {
-                      SyncStatus.syncing => 'جاري رفع البيانات...',
-                      SyncStatus.error => 'فشلت آخر محاولة مزامنة (سيُعاد المحاولة تلقائيًا)',
-                      SyncStatus.idle => SyncService.instance.lastSyncedAt != null
-                          ? 'آخر مزامنة: ${SyncService.instance.lastSyncedAt}'
-                          : 'لم تتم المزامنة بعد',
-                    };
-                    return Row(
-                      children: [
-                        Icon(
-                          status == SyncStatus.error
-                              ? Icons.cloud_off
-                              : Icons.cloud_done,
-                          color: status == SyncStatus.error
-                              ? Colors.red
-                              : Colors.green,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(text)),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
-                  onPressed: () => SyncService.instance.syncNow(),
-                  icon: const Icon(Icons.sync),
-                  label: const Text('مزامنة الآن'),
-                ),
-                const SizedBox(height: 16),
-                SelectableText(
-                    'معرّف جهازك (احتفظ به لاسترجاع بياناتك على جهاز آخر):\n${SyncService.instance.deviceId}'),
-                const SizedBox(height: 16),
-                const Text('استرجاع بيانات من جهاز سابق (الصق المعرّف):'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _restoreDeviceCtrl,
-                  decoration: const InputDecoration(hintText: 'معرّف الجهاز القديم...'),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
-                  onPressed: _busy ? null : _restoreFromCloud,
-                  icon: const Icon(Icons.cloud_download),
-                  label: const Text('استرجاع من السحابة'),
-                ),
-              ],
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: () => SyncService.instance.syncNow(),
+            icon: const Icon(Icons.sync),
+            label: const Text('مزامنة الآن'),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _signOut,
+            icon: const Icon(Icons.logout, color: Colors.red),
+            label: const Text('تسجيل الخروج', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

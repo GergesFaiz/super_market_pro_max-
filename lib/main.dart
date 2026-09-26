@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/data/shop_repository.dart';
 import 'core/sync/sync_service.dart';
+import 'core/sync/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/repository_scope.dart';
+import 'features/auth/screens/auth_gate.dart';
 import 'features/backup/screens/backup_screen.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';import 'features/inventory/cubit/inventory_cubit.dart';
 import 'features/inventory/screens/inventory_screen.dart';
@@ -17,18 +20,23 @@ import 'features/parties/screens/parties_screen.dart';
 import 'features/reports/screens/reports_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const SuperMarketProMax());
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
+  );
+  final repo = ShopRepository(onWrite: SyncService.instance.notifyChanged);
+  await SyncService.instance.init(repo);
+  runApp(SuperMarketProMax(repo: repo));
 }
 
 class SuperMarketProMax extends StatelessWidget {
-  const SuperMarketProMax({super.key});
+  const SuperMarketProMax({super.key, required this.repo});
+  final ShopRepository repo;
 
   @override
   Widget build(BuildContext context) {
-    final repo = ShopRepository(onWrite: SyncService.instance.notifyChanged);
-    SyncService.instance.init(repo);
     return RepositoryScope(
       repository: repo,
       child: MultiBlocProvider(
@@ -48,7 +56,7 @@ class SuperMarketProMax extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const MainShell(),
+          home: const AuthGate(child: MainShell()),
         ),
       ),
     );

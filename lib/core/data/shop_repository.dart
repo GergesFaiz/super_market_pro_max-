@@ -224,6 +224,17 @@ class ShopRepository {
     onWrite?.call();
   }
 
+  /// Deletes all local data. Used when switching to a different account on
+  /// the same device, so the new owner never sees the previous shop's data.
+  Future<void> wipeLocal() async {
+    final db = await _database.db;
+    await db.transaction((txn) async {
+      for (final t in kSyncTables) {
+        await txn.delete(t);
+      }
+    });
+  }
+
   // ── Cloud sync helpers ──
 
   /// All rows of [table] as raw maps, for pushing to the cloud.
